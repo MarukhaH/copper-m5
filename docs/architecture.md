@@ -183,7 +183,7 @@ The same golden set runs on the two agents and on one agent with every tool.
 |---|---|---|
 | CI | `.github/workflows/ci.yml` | Job `check` (lint, types, tests, build on three systems) runs on every push and pull request. Job `eval` runs the golden set on every pull request. Branch protection on `main` requires all four checks, so nothing merges without them |
 | Tracing | `instrumentation.ts`, `lib/observability/langfuse.ts` | When the `LANGFUSE_*` keys are set, the AI SDK's OpenTelemetry spans go to Langfuse. `askCopper` wraps each chat turn in one trace (`ask-copper-turn`), so a turn shows each agent, its tool calls, tokens, cost and time. No keys, no tracing, no error |
-| Golden set | `evals/golden-set.json` | 19 questions in five groups (products, docs, refunds, mixed, safety), each with what a good answer says, the tools it should (or must not) use, and whether it must cite |
+| Golden set | `evals/golden-set.json` | 18 questions in five groups (products, docs, refunds, mixed, safety), each with what a good answer says, the tools it should (or must not) use, and whether it must cite |
 | AI judge | `evals/judge.ts` | A Gemini call (through `lib/ai/call.ts`) grades each answer 1 to 5 against what a good answer says. Tool use and citations are checked by code (`evals/scoring.ts`), not by the model |
 | Eval run | `evals/run-eval.ts`, `evals/golden.eval.ts`, `scripts/run-eval.mjs` | `npm run eval` saves the golden set as the Langfuse dataset `copper-golden-set`, runs every question, saves scores on each trace and the run's pass rate, cost and time. It fails when fewer than 85% pass |
 | Single agent | `instructions.ts` (`SINGLE_AGENT_INSTRUCTIONS`), `tools.ts` (`singleAgentTools`), `run.ts` | One agent with Copper's and the Refund agent's tools and no handoff. `runTurn` runs a turn on either setup and reports the reply, tools, tokens, cost and time |
@@ -205,6 +205,6 @@ runs on pull requests only: it calls real models, so it costs money and time.
 CI needs the keys as Actions secrets, so pull requests from forks can't run it.
 
 **Risks and open questions:** A model grading a model can be wrong or lenient;
-read the failures, not just the pass rate. 19 questions is a small sample, so
-one question flipping moves the pass rate by 5 points; run each setup more than
+read the failures, not just the pass rate. 18 questions is a small sample, so
+one question flipping moves the pass rate by 5.6 points; run each setup more than
 once before trusting a difference.
