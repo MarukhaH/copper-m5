@@ -8,7 +8,29 @@ import { runEval } from "@/evals/run-eval";
 import { REQUIRED_PASS_RATE } from "@/evals/scoring";
 import type { AgentMode } from "@/lib/copper/assistant/run";
 import { isAiConfigured } from "@/lib/ai/call";
-import { isLangfuseConfigured } from "@/lib/observability/langfuse";
+import {
+  isLangfuseConfigured,
+  langfuseBaseUrl,
+} from "@/lib/observability/langfuse";
+
+/**
+ * Checks Langfuse is reachable before the long run, and says why if not.
+ * It never prints the URL: this log is public, and the URL is a secret.
+ */
+async function checkLangfuse() {
+  try {
+    const base = new URL(langfuseBaseUrl()!);
+    const res = await fetch(`${base.origin}/api/public/health`);
+    if (!res.ok) throw new Error(`health check returned ${res.status}`);
+  } catch (error) {
+    const reason =
+      (error as { cause?: { code?: string } }).cause?.code ??
+      (error instanceof TypeError ? error.message : "unknown error");
+    throw new Error(
+      `Can't reach Langfuse (${reason}). Check the LANGFUSE_BASE_URL secret: it should look like https://us.cloud.langfuse.com`,
+    );
+  }
+}
 
 const mode = (
   process.env.EVAL_AGENT === "single" ? "single" : "multi"
@@ -25,6 +47,8 @@ it(
     );
     if (process.env.CI)
       expect(isLangfuseConfigured(), "LANGFUSE_* keys are not set").toBe(true);
+
+    if (isLangfuseConfigured()) await checkLangfuse();
 
     const report = await runEval(mode, runId, {
       only: process.env.EVAL_ONLY?.split(",").filter(Boolean),
