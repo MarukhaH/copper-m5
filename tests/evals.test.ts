@@ -167,6 +167,8 @@ describe("Langfuse base URL", () => {
         "https://us.cloud.langfuse.com",
         " us.cloud.langfuse.com\n",
         "https://us.cloud.langfuse.com/",
+        "https://us.cloud.langfuse.com\u200b",
+        "https://us.cloud.langfuse.com\r\n",
       ]) {
         process.env.LANGFUSE_BASE_URL = value;
         expect(langfuseBaseUrl()).toBe("https://us.cloud.langfuse.com");

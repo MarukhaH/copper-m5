@@ -23,12 +23,13 @@ export function isLangfuseConfigured(): boolean {
 }
 
 /**
- * LANGFUSE_BASE_URL, tidied: trimmed, with https:// added if you left it off
- * and no trailing slash. "us.cloud.langfuse.com" and
+ * LANGFUSE_BASE_URL, tidied: spaces, line breaks and invisible or non-ASCII
+ * characters (they sneak in when you paste) are removed, https:// is added if
+ * you left it off, and there's no trailing slash. "us.cloud.langfuse.com" and
  * "https://us.cloud.langfuse.com/" both work.
  */
 export function langfuseBaseUrl(): string | undefined {
-  const raw = process.env.LANGFUSE_BASE_URL?.trim();
+  const raw = process.env.LANGFUSE_BASE_URL?.replace(/[^\x21-\x7e]/g, "");
   if (!raw) return undefined;
   return (/^https?:\/\//i.test(raw) ? raw : `https://${raw}`).replace(
     /\/+$/,
