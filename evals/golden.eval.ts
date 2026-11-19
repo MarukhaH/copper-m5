@@ -2,9 +2,9 @@
 // (Google and Langfuse), so it is not part of `npm test`.
 //   EVAL_AGENT=multi|single   which agent setup to test (default multi)
 //   EVAL_ONLY=id1,id2         run just those questions
-import { mkdirSync, writeFileSync } from "node:fs";
+import { appendFileSync, mkdirSync, writeFileSync } from "node:fs";
 import { expect, it } from "vitest";
-import { runEval } from "@/evals/run-eval";
+import { type EvalReport, runEval } from "@/evals/run-eval";
 import { REQUIRED_PASS_RATE } from "@/evals/scoring";
 import type { AgentMode } from "@/lib/copper/assistant/run";
 import { isAiConfigured } from "@/lib/ai/call";
@@ -30,6 +30,34 @@ async function checkLangfuse() {
       `Can't reach Langfuse (${reason}). Check the LANGFUSE_BASE_URL secret: it should look like https://us.cloud.langfuse.com`,
     );
   }
+}
+
+/** The scores as a markdown table, for the check's summary on GitHub. */
+function summaryMarkdown(report: EvalReport): string {
+  const s = report.summary;
+  const pct = (n: number) => `${(n * 100).toFixed(0)}%`;
+  const rows = report.rows
+    .map(
+      (r) =>
+        `| ${r.scores.passed ? "pass" : "**FAIL**"} | ${r.id} | ${r.category} | ${r.grade}/5 | ${r.scores.tools ? "ok" : "wrong"} | ${r.scores.citation ? "ok" : "missing"} | ${r.agents.join(" > ")} | $${r.turn.costUsd.toFixed(5)} | ${r.turn.latencyMs} ms |`,
+    )
+    .join("\n");
+  const groups = Object.entries(s.byCategory)
+    .map(([name, c]) => `${name}: ${c.passed}/${c.cases}`)
+    .join(" / ");
+  const setup = report.mode === "multi" ? "two agents" : "one agent";
+  return [
+    `## Golden-set eval (${setup})`,
+    "",
+    `**${s.passed}/${s.cases} passed (${pct(s.passRate)})**, bar ${pct(REQUIRED_PASS_RATE)}. Mean correctness ${s.meanCorrectness.toFixed(2)}. Average per question: $${s.avgCostUsd.toFixed(5)}, ${Math.round(s.avgLatencyMs)} ms, ${Math.round(s.avgTokens)} tokens. Run ${report.runName}; scores are in Langfuse under Datasets > copper-golden-set.`,
+    "",
+    "| Result | Question | Group | Judge | Tools | Citation | Agents | Cost | Time |",
+    "|---|---|---|---|---|---|---|---|---|",
+    rows,
+    "",
+    groups,
+    "",
+  ].join("\n");
 }
 
 const mode = (
@@ -80,6 +108,10 @@ it(
       console.warn(
         `[eval] FAILED ${r.id}: ${r.reasoning}\n  reply: ${r.reply}`,
       );
+
+    // On GitHub, this shows on the pull request's check (Summary tab).
+    if (process.env.GITHUB_STEP_SUMMARY)
+      appendFileSync(process.env.GITHUB_STEP_SUMMARY, summaryMarkdown(report));
 
     expect(s.passRate).toBeGreaterThanOrEqual(REQUIRED_PASS_RATE);
   },
