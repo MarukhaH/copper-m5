@@ -51,6 +51,11 @@ export type AiCallRow = {
   created_at: string;
 };
 
+/** Names the call in Langfuse after its feature, like "refund-agent". */
+function telemetryFor(info: Pick<CallInfo, "feature">) {
+  return { functionId: info.feature };
+}
+
 function google() {
   const googleKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY?.trim();
   if (!googleKey) throw new AiNotConfiguredError();
@@ -114,7 +119,11 @@ async function tracked<T extends { usage: Usage }>(
 /** Generates text. Example: callText({ module: 3, feature: "support-answer" }, { prompt }) */
 export async function callText(info: CallInfo, options: TextOptions) {
   return tracked(info, (model) =>
-    generateText({ ...options, model: languageModel(model) }),
+    generateText({
+      ...options,
+      model: languageModel(model),
+      telemetry: telemetryFor(info),
+    }),
   );
 }
 
@@ -129,6 +138,7 @@ export async function callObject<Schema extends z.ZodType>(
       ...rest,
       model: languageModel(model),
       output: Output.object({ schema }),
+      telemetry: telemetryFor(info),
     }),
   );
   // Spreading `rest` loses generateText's output type; Output.object has
@@ -162,6 +172,7 @@ export async function callEmbedMany(
     const result = await embedMany({
       model: google().embedding(EMBEDDING_MODEL.slice("google/".length)),
       values,
+      telemetry: telemetryFor(info),
       providerOptions: {
         google: { outputDimensionality: EMBEDDING_DIMENSIONS },
       },
@@ -190,6 +201,7 @@ export function callStream(info: CallInfo, options: StreamOptions) {
   return streamText({
     ...options,
     model: languageModel(model),
+    telemetry: telemetryFor(info),
     onFinish: ({ totalUsage }) => logCall(row(true, totalUsage)),
     onError: () => logCall(row(false)),
   });

@@ -320,3 +320,9 @@ export function refundAgentTools(desk: Desk) {
     }),
   };
 }
+
+/** Module 5: the single agent has every tool from both agents and no handoff. */
+export function singleAgentTools(desk: Desk) {
+  const { get_orders, request_refund } = refundAgentTools(desk);
+  return { ...copperTools, get_orders, request_refund };
+}
