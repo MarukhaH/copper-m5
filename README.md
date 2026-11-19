@@ -30,23 +30,25 @@ Or open the repo in **GitHub Codespaces**: it installs everything and starts the
 
 They're optional until a module needs them. Put them in `.env.local` (never commit it) and in your Vercel project settings.
 
-| Variable                                     | Used for                                | Where to find it                                                                            |
-| -------------------------------------------- | --------------------------------------- | ------------------------------------------------------------------------------------------- |
-| `GOOGLE_GENERATIVE_AI_API_KEY`               | All AI calls (`lib/ai/call.ts`)         | [Google AI Studio](https://aistudio.google.com) > Get API key (free, no card)               |
-| `LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY` | Module 5: evals, tracing and monitoring | [Langfuse Cloud](https://cloud.langfuse.com) > new project > Create API keys (free)         |
-| `LANGFUSE_BASE_URL`                          | Module 5: your Langfuse region          | The `LANGFUSE_BASE_URL` Langfuse shows next to your keys, e.g. `https://cloud.langfuse.com` |
+| Variable                                                          | Used for                                | Where to find it                                                                                                                                         |
+| ----------------------------------------------------------------- | --------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GOOGLE_GENERATIVE_AI_API_KEY`                                    | All AI calls (`lib/ai/call.ts`)         | [Google AI Studio](https://aistudio.google.com) > Get API key (free, no card)                                                                            |
+| `LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY`, `LANGFUSE_BASE_URL` | Tracing and evals (Module 5)            | [Langfuse](https://cloud.langfuse.com) > your project > Settings > API Keys; the base URL is the region you picked, like `https://us.cloud.langfuse.com` |
+| `LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY`                      | Module 5: evals, tracing and monitoring | [Langfuse Cloud](https://cloud.langfuse.com) > new project > Create API keys (free)                                                                      |
+| `LANGFUSE_BASE_URL`                                               | Module 5: your Langfuse region          | The `LANGFUSE_BASE_URL` Langfuse shows next to your keys, e.g. `https://cloud.langfuse.com`                                                              |
 
 ## Commands
 
-| Command                              | What it does                                          |
-| ------------------------------------ | ----------------------------------------------------- |
-| `npm run dev`                        | Start the dev server                                  |
-| `npm test`                           | Run the app's tests                                   |
-| `npm run lint` / `npm run typecheck` | Check code style and types                            |
-| `npm run format`                     | Format the code with Prettier                         |
-| `npm run start-module`               | One-time setup after cloning a module branch          |
-| `npm run env:check`                  | List the variables in `.env.local`, values masked     |
-| `npm run embed-docs`                 | Re-embed the PDFs in `public/docs/` after they change |
+| Command                              | What it does                                                                  |
+| ------------------------------------ | ----------------------------------------------------------------------------- |
+| `npm run dev`                        | Start the dev server                                                          |
+| `npm test`                           | Run the app's tests                                                           |
+| `npm run lint` / `npm run typecheck` | Check code style and types                                                    |
+| `npm run format`                     | Format the code with Prettier                                                 |
+| `npm run start-module`               | One-time setup after cloning a module branch                                  |
+| `npm run env:check`                  | List the variables in `.env.local`, values masked                             |
+| `npm run embed-docs`                 | Re-embed the PDFs in `public/docs/` after they change                         |
+| `npm run eval`                       | Run the golden-set evaluation (`-- --agent single` for the one-agent version) |
 
 ## AI coding agents
 

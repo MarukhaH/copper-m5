@@ -28,6 +28,7 @@ import {
   transferToRefundAgent,
 } from "@/lib/copper/assistant/tools";
 import type { Desk } from "@/lib/copper/orders";
+import { flushTraces, withTrace } from "@/lib/observability/langfuse";
 
 export type ChatMessage = { role: "user" | "assistant"; content: string };
 
@@ -191,41 +192,62 @@ export async function askCopper({
   }
 
   // Read the stream in the background, so the panel gets the first update now.
-  void (async () => {
-    try {
-      if (!useTools) {
-        // Without tools, send no instructions either: "always use your
-        // tools" with no tools makes the model answer with nothing.
-        await follow(
-          "copper",
-          callStream(
-            { module: 2, feature: "ask-copper" },
-            { messages, providerOptions: THOUGHT_SUMMARIES },
-          ),
-        );
-      } else {
-        let current = first;
-        for (let handoffs = 0; ; handoffs++) {
-          const next = await follow(
-            current,
-            agentCall(current, messages, desk),
+  // The whole turn is one Langfuse trace (Module 5): each agent, its tool
+  // calls, tokens, cost and time show up inside it.
+  const multi = Boolean(desk && useTools);
+  void withTrace(
+    {
+      name: "ask-copper-turn",
+      input: messages.at(-1)?.content,
+      tags: [multi ? "agents:multi" : "agents:copper-only", "source:app"],
+      metadata: { useTools: String(useTools) },
+    },
+    async (span) => {
+      try {
+        if (!useTools) {
+          // Without tools, send no instructions either: "always use your
+          // tools" with no tools makes the model answer with nothing.
+          await follow(
+            "copper",
+            callStream(
+              { module: 2, feature: "ask-copper" },
+              { messages, providerOptions: THOUGHT_SUMMARIES },
+            ),
           );
-          if (!next || next === current || handoffs >= MAX_HANDOFFS) break;
-          progress.steps.push({ type: "handoff", from: current, to: next });
-          progress.agent = current = next;
-          progress.reply = "";
-          call++;
-          update(snapshot());
+        } else {
+          let current = first;
+          for (let handoffs = 0; ; handoffs++) {
+            const next = await follow(
+              current,
+              agentCall(current, messages, desk),
+            );
+            if (!next || next === current || handoffs >= MAX_HANDOFFS) break;
+            progress.steps.push({ type: "handoff", from: current, to: next });
+            progress.agent = current = next;
+            progress.reply = "";
+            call++;
+            update(snapshot());
+          }
         }
+        progress.status = "done";
+        if (!progress.reply.trim()) progress.reply = SORRY;
+      } catch {
+        progress.status = "error";
+        if (!progress.reply.trim()) progress.reply = SORRY;
       }
-      progress.status = "done";
-      if (!progress.reply.trim()) progress.reply = SORRY;
-    } catch {
+      span?.update({
+        output: progress.reply,
+        metadata: { status: progress.status, agent: progress.agent },
+      });
+    },
+  )
+    .catch(() => {
       progress.status = "error";
       if (!progress.reply.trim()) progress.reply = SORRY;
-    }
-    done(snapshot());
-  })();
+    })
+    // Send the trace now: a serverless function can freeze right after the reply.
+    .finally(() => void flushTraces().catch(() => {}))
+    .finally(() => done(snapshot()));
 
   return { progress: live };
 }
