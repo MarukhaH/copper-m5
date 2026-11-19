@@ -27,6 +27,7 @@ import {
 import {
   flushTraces,
   isLangfuseConfigured,
+  langfuseBaseUrl,
   startTracing,
 } from "@/lib/observability/langfuse";
 
@@ -101,7 +102,13 @@ export async function runEval(
   const turns = new Map<string, TurnResult>();
   const rows = new Map<string, EvalRow>();
   const runName = `${mode}-${runId}`;
-  const langfuse = isLangfuseConfigured() ? new LangfuseClient() : undefined;
+  const langfuse = isLangfuseConfigured()
+    ? new LangfuseClient({
+        publicKey: process.env.LANGFUSE_PUBLIC_KEY,
+        secretKey: process.env.LANGFUSE_SECRET_KEY,
+        baseUrl: langfuseBaseUrl(),
+      })
+    : undefined;
   startTracing();
 
   const task = async (item: { input?: unknown }) => {

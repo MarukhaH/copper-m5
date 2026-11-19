@@ -22,6 +22,20 @@ export function isLangfuseConfigured(): boolean {
   );
 }
 
+/**
+ * LANGFUSE_BASE_URL, tidied: trimmed, with https:// added if you left it off
+ * and no trailing slash. "us.cloud.langfuse.com" and
+ * "https://us.cloud.langfuse.com/" both work.
+ */
+export function langfuseBaseUrl(): string | undefined {
+  const raw = process.env.LANGFUSE_BASE_URL?.trim();
+  if (!raw) return undefined;
+  return (/^https?:\/\//i.test(raw) ? raw : `https://${raw}`).replace(
+    /\/+$/,
+    "",
+  );
+}
+
 let tracing: { processor: LangfuseSpanProcessor } | undefined;
 
 /**
@@ -34,7 +48,7 @@ export function startTracing() {
     const processor = new LangfuseSpanProcessor({
       publicKey: process.env.LANGFUSE_PUBLIC_KEY,
       secretKey: process.env.LANGFUSE_SECRET_KEY,
-      baseUrl: process.env.LANGFUSE_BASE_URL,
+      baseUrl: langfuseBaseUrl(),
     });
     new NodeTracerProvider({ spanProcessors: [processor] }).register();
     registerTelemetry(new OpenTelemetry());
@@ -90,7 +104,7 @@ export function langfuseClient(): LangfuseClient | undefined {
   client ??= new LangfuseClient({
     publicKey: process.env.LANGFUSE_PUBLIC_KEY,
     secretKey: process.env.LANGFUSE_SECRET_KEY,
-    baseUrl: process.env.LANGFUSE_BASE_URL,
+    baseUrl: langfuseBaseUrl(),
   });
   return client;
 }

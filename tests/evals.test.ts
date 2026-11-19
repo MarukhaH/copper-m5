@@ -157,3 +157,25 @@ describe("the single agent", () => {
     expect(SINGLE_AGENT_INSTRUCTIONS).not.toMatch(/transfer_to/);
   });
 });
+
+describe("Langfuse base URL", () => {
+  it("accepts a URL with or without https:// and a trailing slash", async () => {
+    const { langfuseBaseUrl } = await import("@/lib/observability/langfuse");
+    const before = process.env.LANGFUSE_BASE_URL;
+    try {
+      for (const value of [
+        "https://us.cloud.langfuse.com",
+        " us.cloud.langfuse.com\n",
+        "https://us.cloud.langfuse.com/",
+      ]) {
+        process.env.LANGFUSE_BASE_URL = value;
+        expect(langfuseBaseUrl()).toBe("https://us.cloud.langfuse.com");
+      }
+      delete process.env.LANGFUSE_BASE_URL;
+      expect(langfuseBaseUrl()).toBeUndefined();
+    } finally {
+      if (before === undefined) delete process.env.LANGFUSE_BASE_URL;
+      else process.env.LANGFUSE_BASE_URL = before;
+    }
+  });
+});
