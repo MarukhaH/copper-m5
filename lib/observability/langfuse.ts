@@ -14,11 +14,16 @@ import {
 import { NodeTracerProvider } from "@opentelemetry/sdk-trace-node";
 import { registerTelemetry } from "ai";
 
+/** A key or URL from the environment without spaces, line breaks or invisible characters (they sneak in when you paste). */
+const clean = (value: string | undefined) =>
+  value?.replace(/[^\x21-\x7e]/g, "") || undefined;
+
+export const langfusePublicKey = () => clean(process.env.LANGFUSE_PUBLIC_KEY);
+export const langfuseSecretKey = () => clean(process.env.LANGFUSE_SECRET_KEY);
+
 export function isLangfuseConfigured(): boolean {
   return Boolean(
-    process.env.LANGFUSE_PUBLIC_KEY?.trim() &&
-    process.env.LANGFUSE_SECRET_KEY?.trim() &&
-    process.env.LANGFUSE_BASE_URL?.trim(),
+    langfusePublicKey() && langfuseSecretKey() && langfuseBaseUrl(),
   );
 }
 
@@ -29,7 +34,7 @@ export function isLangfuseConfigured(): boolean {
  * "https://us.cloud.langfuse.com/" both work.
  */
 export function langfuseBaseUrl(): string | undefined {
-  const raw = process.env.LANGFUSE_BASE_URL?.replace(/[^\x21-\x7e]/g, "");
+  const raw = clean(process.env.LANGFUSE_BASE_URL);
   if (!raw) return undefined;
   return (/^https?:\/\//i.test(raw) ? raw : `https://${raw}`).replace(
     /\/+$/,
@@ -47,8 +52,8 @@ export function startTracing() {
   if (!isLangfuseConfigured()) return undefined;
   if (!tracing) {
     const processor = new LangfuseSpanProcessor({
-      publicKey: process.env.LANGFUSE_PUBLIC_KEY,
-      secretKey: process.env.LANGFUSE_SECRET_KEY,
+      publicKey: langfusePublicKey(),
+      secretKey: langfuseSecretKey(),
       baseUrl: langfuseBaseUrl(),
     });
     new NodeTracerProvider({ spanProcessors: [processor] }).register();
@@ -103,8 +108,8 @@ let client: LangfuseClient | undefined;
 export function langfuseClient(): LangfuseClient | undefined {
   if (!isLangfuseConfigured()) return undefined;
   client ??= new LangfuseClient({
-    publicKey: process.env.LANGFUSE_PUBLIC_KEY,
-    secretKey: process.env.LANGFUSE_SECRET_KEY,
+    publicKey: langfusePublicKey(),
+    secretKey: langfuseSecretKey(),
     baseUrl: langfuseBaseUrl(),
   });
   return client;

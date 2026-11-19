@@ -28,6 +28,8 @@ import {
   flushTraces,
   isLangfuseConfigured,
   langfuseBaseUrl,
+  langfusePublicKey,
+  langfuseSecretKey,
   startTracing,
 } from "@/lib/observability/langfuse";
 
@@ -104,8 +106,8 @@ export async function runEval(
   const runName = `${mode}-${runId}`;
   const langfuse = isLangfuseConfigured()
     ? new LangfuseClient({
-        publicKey: process.env.LANGFUSE_PUBLIC_KEY,
-        secretKey: process.env.LANGFUSE_SECRET_KEY,
+        publicKey: langfusePublicKey(),
+        secretKey: langfuseSecretKey(),
         baseUrl: langfuseBaseUrl(),
       })
     : undefined;
